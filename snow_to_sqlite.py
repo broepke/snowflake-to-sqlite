@@ -35,7 +35,19 @@ sqlite_db_path = "deadpool.db"
 
 
 def fetch_table_schema(connection, table_name):
-    """Fetch the schema of a specific table from Snowflake."""
+    """
+    Fetch the schema of a specific table from Snowflake.
+
+    Args:
+        connection (snowflake.connector.connection.SnowflakeConnection): Active Snowflake connection
+        table_name (str): Name of the table to fetch schema for
+
+    Returns:
+        list: List of tuples containing column information (name, type, etc.)
+
+    Example:
+        schema = fetch_table_schema(snow_conn, "players")
+    """
     query = f"DESCRIBE TABLE {table_name}"
     cursor = connection.cursor()
     cursor.execute(query)
@@ -44,7 +56,19 @@ def fetch_table_schema(connection, table_name):
 
 
 def map_snowflake_to_sqlite_type(snowflake_type):
-    """Map Snowflake data types to SQLite data types."""
+    """
+    Map Snowflake data types to their equivalent SQLite data types.
+
+    Args:
+        snowflake_type (str): Snowflake data type to convert
+
+    Returns:
+        str: Corresponding SQLite data type
+
+    Example:
+        sqlite_type = map_snowflake_to_sqlite_type("VARCHAR(255)")  # Returns "TEXT"
+        sqlite_type = map_snowflake_to_sqlite_type("NUMBER(10,2)")  # Returns "REAL"
+    """
     if "VARCHAR" in snowflake_type or "TEXT" in snowflake_type:
         return "TEXT"
     elif "NUMBER" in snowflake_type:
@@ -56,7 +80,21 @@ def map_snowflake_to_sqlite_type(snowflake_type):
 
 
 def create_table_in_sqlite(table_name, schema):
-    """Create a table in SQLite based on the Snowflake schema."""
+    """
+    Create a table in SQLite based on the Snowflake schema.
+
+    Args:
+        table_name (str): Name of the table to create
+        schema (list): List of tuples containing column information from Snowflake
+
+    Note:
+        - Creates the table if it doesn't exist
+        - Automatically maps Snowflake data types to SQLite types
+        - Uses the global sqlite_db_path for database connection
+
+    Example:
+        create_table_in_sqlite("players", schema_data)
+    """
     conn = sqlite3.connect(sqlite_db_path)
     cursor = conn.cursor()
 
@@ -72,7 +110,21 @@ def create_table_in_sqlite(table_name, schema):
 
 
 def fetch_data_from_snowflake(connection, table_name):
-    """Fetch data from a specific table in Snowflake."""
+    """
+    Fetch all data from a specific table in Snowflake.
+
+    Args:
+        connection (snowflake.connector.connection.SnowflakeConnection): Active Snowflake connection
+        table_name (str): Name of the table to fetch data from
+
+    Returns:
+        tuple: (data, column_names)
+            - data: List of tuples containing the table rows
+            - column_names: List of column names from the table
+
+    Example:
+        data, columns = fetch_data_from_snowflake(snow_conn, "players")
+    """
     query = f"SELECT * FROM {table_name}"
     cursor = connection.cursor()
     cursor.execute(query)
@@ -82,7 +134,22 @@ def fetch_data_from_snowflake(connection, table_name):
 
 
 def convert_decimal_to_supported_type(data):
-    """Convert Decimal values to float or string for SQLite compatibility."""
+    """
+    Convert Decimal values to float for SQLite compatibility.
+
+    Args:
+        data (list): List of tuples containing row data, possibly with Decimal values
+
+    Returns:
+        list: List of tuples with Decimal values converted to float
+
+    Note:
+        SQLite doesn't support Decimal type directly, so we convert to float
+        for compatibility while maintaining precision.
+
+    Example:
+        converted_data = convert_decimal_to_supported_type(raw_data)
+    """
     return [
         tuple(float(item) if isinstance(item, Decimal) else item for item in row)
         for row in data
@@ -90,7 +157,21 @@ def convert_decimal_to_supported_type(data):
 
 
 def write_data_to_sqlite(data, table_name):
-    """Insert data into the specified SQLite table."""
+    """
+    Insert data into the specified SQLite table.
+
+    Args:
+        data (list): List of tuples containing the rows to insert
+        table_name (str): Name of the target table
+
+    Note:
+        - Uses the global sqlite_db_path for database connection
+        - Performs bulk insert using executemany for better performance
+        - Automatically commits the transaction
+
+    Example:
+        write_data_to_sqlite(processed_data, "players")
+    """
     conn = sqlite3.connect(sqlite_db_path)
     cursor = conn.cursor()
 
@@ -104,6 +185,22 @@ def write_data_to_sqlite(data, table_name):
 
 
 def main():
+    """
+    Main function to orchestrate the data transfer from Snowflake to SQLite.
+
+    This function:
+    1. Establishes connection to Snowflake
+    2. Iterates through predefined table names
+    3. For each table:
+        - Fetches schema from Snowflake
+        - Creates corresponding table in SQLite
+        - Transfers data from Snowflake to SQLite
+    4. Handles connection cleanup
+
+    Note:
+        Uses environment variables for Snowflake credentials and
+        global variables for configuration.
+    """
     # Open Snowflake connection
     snowflake_connection = snowflake.connector.connect(**snowflake_conn_params)
     print("Snowflake connection established.")
