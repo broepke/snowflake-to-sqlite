@@ -49,18 +49,3 @@ def run_snowflake_query(_conn, query):
         cur.execute(query)
         result = cur.fetch_pandas_all()
         return result
-
-
-query = """select * from picks where year = 2024 and DEATH_DATE is not null"""
-
-# Query and display the data you inserted
-st.header("SQL Lite")
-sqlite_conn = st.connection("deadpool_db", type="sql")
-sqlite_df = sqlite_conn.query(query)
-st.dataframe(sqlite_df)
-
-
-st.header("Snowflake")
-snow_conn = snowflake_connection_helper()
-snow_df = run_snowflake_query(snow_conn, query)
-st.dataframe(snow_df)
