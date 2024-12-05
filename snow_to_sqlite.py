@@ -46,22 +46,22 @@ snowflake_conn_params = {
     "role": SNOW_ROLE,
     "account": SNOW_ACCOUNT,
     "warehouse": "ENGINEER",
-    "database": "DEADPOOL",
+    "database": "JAFFLE_SHOP",
     "schema": "PROD",
 }
 
 # List of table names to fetch and write
 table_names = [
-    "picks",
-    "players",
-    "scores",
-    "draft",
-    "picks_twenty_four",
-    "score_twenty_four",
+    "customers",
+    "items",
+    "orders",
+    "products",
+    "stores",
+    "supplies",
 ]
 
 # SQLite database file
-sqlite_db_path = "deadpool.db"
+sqlite_db_path = "jaffle_shop.db"
 
 def fetch_table_schema(connection, table_name):
     """
@@ -73,9 +73,6 @@ def fetch_table_schema(connection, table_name):
 
     Returns:
         list: List of tuples containing column information (name, type, etc.)
-
-    Example:
-        schema = fetch_table_schema(snow_conn, "players")
     """
     query = f"DESCRIBE TABLE {table_name}"
     cursor = connection.cursor()
@@ -92,37 +89,44 @@ def map_snowflake_to_sqlite_type(snowflake_type):
 
     Returns:
         str: Corresponding SQLite data type
-
-    Example:
-        sqlite_type = map_snowflake_to_sqlite_type("VARCHAR(255)")  # Returns "TEXT"
-        sqlite_type = map_snowflake_to_sqlite_type("NUMBER(10,2)")  # Returns "REAL"
     """
+    snowflake_type = snowflake_type.upper()
+    
+    # Handle VARCHAR types
     if "VARCHAR" in snowflake_type or "TEXT" in snowflake_type:
         return "TEXT"
+    
+    # Handle NUMBER types
     elif "NUMBER" in snowflake_type:
-        return "REAL" if "," in snowflake_type else "INTEGER"
-    elif "DATE" in snowflake_type:
-        return "date"
+        # Check if it's a decimal number
+        if "," in snowflake_type:
+            return "REAL"
+        else:
+            # For NUMBER(38,0), use TEXT to preserve large integers
+            if "NUMBER(38,0)" in snowflake_type:
+                return "TEXT"
+            return "INTEGER"
+    
+    # Handle TIMESTAMP types
+    elif "TIMESTAMP_NTZ" in snowflake_type:
+        return "datetime"
     elif "TIMESTAMP" in snowflake_type:
         return "datetime"
-    else:
-        return "TEXT"  # Default to TEXT for unknown types
+    
+    # Handle DATE type
+    elif "DATE" in snowflake_type:
+        return "date"
+    
+    # Handle BOOLEAN type
+    elif "BOOLEAN" in snowflake_type:
+        return "INTEGER"  # SQLite doesn't have native BOOLEAN, use INTEGER (0/1)
+    
+    # Default to TEXT for unknown types
+    return "TEXT"
 
 def create_table_in_sqlite(table_name, schema):
     """
     Create a table in SQLite based on the Snowflake schema.
-
-    Args:
-        table_name (str): Name of the table to create
-        schema (list): List of tuples containing column information from Snowflake
-
-    Note:
-        - Creates the table if it doesn't exist
-        - Automatically maps Snowflake data types to SQLite types
-        - Uses the global sqlite_db_path for database connection
-
-    Example:
-        create_table_in_sqlite("players", schema_data)
     """
     conn = sqlite3.connect(sqlite_db_path, detect_types=sqlite3.PARSE_DECLTYPES)
     cursor = conn.cursor()
@@ -137,21 +141,52 @@ def create_table_in_sqlite(table_name, schema):
     conn.commit()
     conn.close()
 
+def convert_value(value, snowflake_type):
+    """
+    Convert a value from Snowflake format to SQLite compatible format.
+
+    Args:
+        value: The value to convert
+        snowflake_type (str): The Snowflake data type of the value
+
+    Returns:
+        The converted value suitable for SQLite storage
+    """
+    if value is None:
+        return None
+
+    snowflake_type = snowflake_type.upper()
+    
+    # Handle BOOLEAN
+    if "BOOLEAN" in snowflake_type:
+        return 1 if value else 0
+    
+    # Handle NUMBER(38,0)
+    if "NUMBER(38,0)" in snowflake_type:
+        return str(value)  # Store as TEXT to preserve large integers
+    
+    # Handle other NUMBER types
+    if "NUMBER" in snowflake_type:
+        if isinstance(value, Decimal):
+            if "," in snowflake_type:  # decimal places specified
+                return float(value)
+            return int(value)
+    
+    # Handle TIMESTAMP_NTZ
+    if "TIMESTAMP_NTZ" in snowflake_type:
+        if isinstance(value, (datetime, date)):
+            return value
+        # Handle string timestamps
+        try:
+            return datetime.fromisoformat(str(value))
+        except (ValueError, TypeError):
+            return None
+    
+    return value
+
 def fetch_data_from_snowflake(connection, table_name):
     """
     Fetch all data from a specific table in Snowflake.
-
-    Args:
-        connection (snowflake.connector.connection.SnowflakeConnection): Active Snowflake connection
-        table_name (str): Name of the table to fetch data from
-
-    Returns:
-        tuple: (data, column_names)
-            - data: List of tuples containing the table rows
-            - column_names: List of column names from the table
-
-    Example:
-        data, columns = fetch_data_from_snowflake(snow_conn, "players")
     """
     query = f"SELECT * FROM {table_name}"
     cursor = connection.cursor()
@@ -160,48 +195,34 @@ def fetch_data_from_snowflake(connection, table_name):
     column_names = [desc[0] for desc in cursor.description]
     return data, column_names
 
-def convert_decimal_to_supported_type(data):
+def convert_data_for_sqlite(data, schema):
     """
-    Convert Decimal values to float for SQLite compatibility.
+    Convert all data to SQLite-compatible formats based on schema.
 
     Args:
-        data (list): List of tuples containing row data, possibly with Decimal values
+        data (list): List of tuples containing row data
+        schema (list): List of tuples containing column information
 
     Returns:
-        list: List of tuples with Decimal values converted to float
-
-    Note:
-        SQLite doesn't support Decimal type directly, so we convert to float
-        for compatibility while maintaining precision.
-
-    Example:
-        converted_data = convert_decimal_to_supported_type(raw_data)
+        list: List of tuples with converted data
     """
-    return [
-        tuple(float(item) if isinstance(item, Decimal) else item for item in row)
-        for row in data
-    ]
+    converted_data = []
+    for row in data:
+        converted_row = []
+        for value, column_info in zip(row, schema):
+            snowflake_type = column_info[1]
+            converted_value = convert_value(value, snowflake_type)
+            converted_row.append(converted_value)
+        converted_data.append(tuple(converted_row))
+    return converted_data
 
 def write_data_to_sqlite(data, table_name):
     """
     Insert data into the specified SQLite table.
-
-    Args:
-        data (list): List of tuples containing the rows to insert
-        table_name (str): Name of the target table
-
-    Note:
-        - Uses the global sqlite_db_path for database connection
-        - Performs bulk insert using executemany for better performance
-        - Automatically commits the transaction
-
-    Example:
-        write_data_to_sqlite(processed_data, "players")
     """
     conn = sqlite3.connect(sqlite_db_path, detect_types=sqlite3.PARSE_DECLTYPES)
     cursor = conn.cursor()
 
-    # Insert data into SQLite
     placeholders = ", ".join(["?" for _ in data[0]])
     insert_query = f"INSERT INTO {table_name} VALUES ({placeholders})"
     cursor.executemany(insert_query, data)
@@ -212,21 +233,7 @@ def write_data_to_sqlite(data, table_name):
 def main():
     """
     Main function to orchestrate the data transfer from Snowflake to SQLite.
-
-    This function:
-    1. Establishes connection to Snowflake
-    2. Iterates through predefined table names
-    3. For each table:
-        - Fetches schema from Snowflake
-        - Creates corresponding table in SQLite
-        - Transfers data from Snowflake to SQLite
-    4. Handles connection cleanup
-
-    Note:
-        Uses environment variables for Snowflake credentials and
-        global variables for configuration.
     """
-    # Open Snowflake connection
     snowflake_connection = snowflake.connector.connect(**snowflake_conn_params)
     print("Snowflake connection established.")
 
@@ -243,13 +250,14 @@ def main():
             # Fetch data from Snowflake
             data, _ = fetch_data_from_snowflake(snowflake_connection, table_name)
 
-            # Convert data types and insert into SQLite
-            data = convert_decimal_to_supported_type(data)
-            write_data_to_sqlite(data, table_name)
+            # Convert data types based on schema
+            converted_data = convert_data_for_sqlite(data, schema)
+            
+            # Write to SQLite
+            write_data_to_sqlite(converted_data, table_name)
 
             print(f"Data successfully written for table: {table_name}")
     finally:
-        # Close Snowflake connection
         snowflake_connection.close()
         print("Snowflake connection closed.")
 

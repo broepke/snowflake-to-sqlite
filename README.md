@@ -27,6 +27,11 @@ cd snowflake-to-sqlite
 ```bash
 pip install -r requirements.txt
 ```
+## Data
+
+In the data folder is a set of CSV files that can be loaded into your data warehouse for testing this if you'd like.  These files come from the dbt Demo project "Jaffle Shop" 
+
+[https://github.com/dbt-labs/jaffle-shop/tree/main](https://github.com/dbt-labs/jaffle-shop/tree/main)
 
 ## Configuration
 
@@ -55,12 +60,11 @@ snowflake_conn_params = {
 }
 
 table_names = [
-    "picks",
-    "players",
-    "scores",
-    "draft",
-    "picks_twenty_four",
-    "score_twenty_four",
+    "customers",
+    "orders",
+    "products",
+    "stores",
+    "supplies",
 ]
 ```
 
