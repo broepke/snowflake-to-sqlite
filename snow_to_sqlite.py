@@ -2,12 +2,42 @@ import snowflake.connector
 import sqlite3
 from decimal import Decimal
 import os
+from datetime import date, datetime
 
 # Environment variables for Snowflake credentials
 SNOW_USER = os.environ.get("SNOW_USER")
 SNOW_PASS = os.environ.get("SNOW_PASS")
 SNOW_ACCOUNT = os.environ.get("SNOW_ACCOUNT")
 SNOW_ROLE = os.environ.get("SNOW_ROLE")
+
+# SQLite date/datetime adapters
+def adapt_date(val):
+    """Convert date to ISO format string."""
+    return val.isoformat() if val else None
+
+def adapt_datetime(val):
+    """Convert datetime to ISO format string."""
+    return val.isoformat() if val else None
+
+def convert_date(val):
+    """Convert ISO format string back to date."""
+    try:
+        return datetime.strptime(val.decode(), '%Y-%m-%d').date() if val else None
+    except (ValueError, AttributeError):
+        return None
+
+def convert_datetime(val):
+    """Convert ISO format string back to datetime."""
+    try:
+        return datetime.fromisoformat(val.decode()) if val else None
+    except (ValueError, AttributeError):
+        return None
+
+# Register the adapters and converters
+sqlite3.register_adapter(date, adapt_date)
+sqlite3.register_adapter(datetime, adapt_datetime)
+sqlite3.register_converter("date", convert_date)
+sqlite3.register_converter("datetime", convert_datetime)
 
 # Snowflake connection details
 snowflake_conn_params = {
@@ -33,7 +63,6 @@ table_names = [
 # SQLite database file
 sqlite_db_path = "deadpool.db"
 
-
 def fetch_table_schema(connection, table_name):
     """
     Fetch the schema of a specific table from Snowflake.
@@ -54,7 +83,6 @@ def fetch_table_schema(connection, table_name):
     schema = cursor.fetchall()
     return schema
 
-
 def map_snowflake_to_sqlite_type(snowflake_type):
     """
     Map Snowflake data types to their equivalent SQLite data types.
@@ -73,11 +101,12 @@ def map_snowflake_to_sqlite_type(snowflake_type):
         return "TEXT"
     elif "NUMBER" in snowflake_type:
         return "REAL" if "," in snowflake_type else "INTEGER"
-    elif "DATE" in snowflake_type or "TIMESTAMP" in snowflake_type:
-        return "TEXT"
+    elif "DATE" in snowflake_type:
+        return "date"
+    elif "TIMESTAMP" in snowflake_type:
+        return "datetime"
     else:
         return "TEXT"  # Default to TEXT for unknown types
-
 
 def create_table_in_sqlite(table_name, schema):
     """
@@ -95,7 +124,7 @@ def create_table_in_sqlite(table_name, schema):
     Example:
         create_table_in_sqlite("players", schema_data)
     """
-    conn = sqlite3.connect(sqlite_db_path)
+    conn = sqlite3.connect(sqlite_db_path, detect_types=sqlite3.PARSE_DECLTYPES)
     cursor = conn.cursor()
 
     columns_with_types = ", ".join(
@@ -107,7 +136,6 @@ def create_table_in_sqlite(table_name, schema):
     cursor.execute(create_table_query)
     conn.commit()
     conn.close()
-
 
 def fetch_data_from_snowflake(connection, table_name):
     """
@@ -132,7 +160,6 @@ def fetch_data_from_snowflake(connection, table_name):
     column_names = [desc[0] for desc in cursor.description]
     return data, column_names
 
-
 def convert_decimal_to_supported_type(data):
     """
     Convert Decimal values to float for SQLite compatibility.
@@ -155,7 +182,6 @@ def convert_decimal_to_supported_type(data):
         for row in data
     ]
 
-
 def write_data_to_sqlite(data, table_name):
     """
     Insert data into the specified SQLite table.
@@ -172,7 +198,7 @@ def write_data_to_sqlite(data, table_name):
     Example:
         write_data_to_sqlite(processed_data, "players")
     """
-    conn = sqlite3.connect(sqlite_db_path)
+    conn = sqlite3.connect(sqlite_db_path, detect_types=sqlite3.PARSE_DECLTYPES)
     cursor = conn.cursor()
 
     # Insert data into SQLite
@@ -182,7 +208,6 @@ def write_data_to_sqlite(data, table_name):
 
     conn.commit()
     conn.close()
-
 
 def main():
     """
@@ -227,7 +252,6 @@ def main():
         # Close Snowflake connection
         snowflake_connection.close()
         print("Snowflake connection closed.")
-
 
 if __name__ == "__main__":
     main()
