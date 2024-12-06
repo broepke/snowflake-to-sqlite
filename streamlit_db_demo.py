@@ -5,7 +5,7 @@ from utilities import run_snowflake_query
 st.title("SQLite & Snowflake Intechange Demo")
 st.write("This is a small demo application that can take a single query and pass it to either a remote Snowflake warehouse or a local DB cache of tables in SQLlite.")
 
-query = """select * from products where type = 'beverage'"""
+query = """select * from products where type = 'beverage' order by sku desc"""
 
 st.code(query)
 
