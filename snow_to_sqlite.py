@@ -1,30 +1,27 @@
-import snowflake.connector
 import sqlite3
 from decimal import Decimal
-import os
 from datetime import date, datetime
+from utilities import snowflake_connection_helper
 
-# Environment variables for Snowflake credentials
-SNOW_USER = os.environ.get("SNOW_USER")
-SNOW_PASS = os.environ.get("SNOW_PASS")
-SNOW_ACCOUNT = os.environ.get("SNOW_ACCOUNT")
-SNOW_ROLE = os.environ.get("SNOW_ROLE")
 
 # SQLite date/datetime adapters
 def adapt_date(val):
     """Convert date to ISO format string."""
     return val.isoformat() if val else None
 
+
 def adapt_datetime(val):
     """Convert datetime to ISO format string."""
     return val.isoformat() if val else None
 
+
 def convert_date(val):
     """Convert ISO format string back to date."""
     try:
-        return datetime.strptime(val.decode(), '%Y-%m-%d').date() if val else None
+        return datetime.strptime(val.decode(), "%Y-%m-%d").date() if val else None
     except (ValueError, AttributeError):
         return None
+
 
 def convert_datetime(val):
     """Convert ISO format string back to datetime."""
@@ -33,22 +30,13 @@ def convert_datetime(val):
     except (ValueError, AttributeError):
         return None
 
+
 # Register the adapters and converters
 sqlite3.register_adapter(date, adapt_date)
 sqlite3.register_adapter(datetime, adapt_datetime)
 sqlite3.register_converter("date", convert_date)
 sqlite3.register_converter("datetime", convert_datetime)
 
-# Snowflake connection details
-snowflake_conn_params = {
-    "user": SNOW_USER,
-    "password": SNOW_PASS,
-    "role": SNOW_ROLE,
-    "account": SNOW_ACCOUNT,
-    "warehouse": "ENGINEER",
-    "database": "JAFFLE_SHOP",
-    "schema": "PROD",
-}
 
 # List of table names to fetch and write
 table_names = [
@@ -62,6 +50,7 @@ table_names = [
 
 # SQLite database file
 sqlite_db_path = "jaffle_shop.db"
+
 
 def fetch_table_schema(connection, table_name):
     """
@@ -80,6 +69,7 @@ def fetch_table_schema(connection, table_name):
     schema = cursor.fetchall()
     return schema
 
+
 def map_snowflake_to_sqlite_type(snowflake_type):
     """
     Map Snowflake data types to their equivalent SQLite data types.
@@ -91,11 +81,11 @@ def map_snowflake_to_sqlite_type(snowflake_type):
         str: Corresponding SQLite data type
     """
     snowflake_type = snowflake_type.upper()
-    
+
     # Handle VARCHAR types
     if "VARCHAR" in snowflake_type or "TEXT" in snowflake_type:
         return "TEXT"
-    
+
     # Handle NUMBER types
     elif "NUMBER" in snowflake_type:
         # Check if it's a decimal number
@@ -103,23 +93,24 @@ def map_snowflake_to_sqlite_type(snowflake_type):
             return "REAL"
         else:
             return "INTEGER"
-    
+
     # Handle TIMESTAMP types
     elif "TIMESTAMP_NTZ" in snowflake_type:
         return "datetime"
     elif "TIMESTAMP" in snowflake_type:
         return "datetime"
-    
+
     # Handle DATE type
     elif "DATE" in snowflake_type:
         return "date"
-    
+
     # Handle BOOLEAN type
     elif "BOOLEAN" in snowflake_type:
         return "INTEGER"  # SQLite doesn't have native BOOLEAN, use INTEGER (0/1)
-    
+
     # Default to TEXT for unknown types
     return "TEXT"
+
 
 def create_table_in_sqlite(table_name, schema):
     """
@@ -138,6 +129,7 @@ def create_table_in_sqlite(table_name, schema):
     conn.commit()
     conn.close()
 
+
 def convert_value(value, snowflake_type):
     """
     Convert a value from Snowflake format to SQLite compatible format.
@@ -153,22 +145,22 @@ def convert_value(value, snowflake_type):
         return None
 
     snowflake_type = snowflake_type.upper()
-    
+
     # Handle BOOLEAN
     if "BOOLEAN" in snowflake_type:
         return 1 if value else 0
-    
+
     # Handle NUMBER(38,0)
     if "NUMBER(38,0)" in snowflake_type:
         return str(value)  # Store as TEXT to preserve large integers
-    
+
     # Handle other NUMBER types
     if "NUMBER" in snowflake_type:
         if isinstance(value, Decimal):
             if "," in snowflake_type:  # decimal places specified
                 return float(value)
             return int(value)
-    
+
     # Handle TIMESTAMP_NTZ
     if "TIMESTAMP_NTZ" in snowflake_type:
         if isinstance(value, (datetime, date)):
@@ -178,8 +170,9 @@ def convert_value(value, snowflake_type):
             return datetime.fromisoformat(str(value))
         except (ValueError, TypeError):
             return None
-    
+
     return value
+
 
 def fetch_data_from_snowflake(connection, table_name):
     """
@@ -191,6 +184,7 @@ def fetch_data_from_snowflake(connection, table_name):
     data = cursor.fetchall()
     column_names = [desc[0] for desc in cursor.description]
     return data, column_names
+
 
 def convert_data_for_sqlite(data, schema):
     """
@@ -213,6 +207,7 @@ def convert_data_for_sqlite(data, schema):
         converted_data.append(tuple(converted_row))
     return converted_data
 
+
 def write_data_to_sqlite(data, table_name):
     """
     Insert data into the specified SQLite table.
@@ -227,11 +222,12 @@ def write_data_to_sqlite(data, table_name):
     conn.commit()
     conn.close()
 
+
 def main():
     """
     Main function to orchestrate the data transfer from Snowflake to SQLite.
     """
-    snowflake_connection = snowflake.connector.connect(**snowflake_conn_params)
+    snowflake_connection = snowflake_connection_helper()
     print("Snowflake connection established.")
 
     try:
@@ -249,7 +245,7 @@ def main():
 
             # Convert data types based on schema
             converted_data = convert_data_for_sqlite(data, schema)
-            
+
             # Write to SQLite
             write_data_to_sqlite(converted_data, table_name)
 
@@ -257,6 +253,7 @@ def main():
     finally:
         snowflake_connection.close()
         print("Snowflake connection closed.")
+
 
 if __name__ == "__main__":
     main()
