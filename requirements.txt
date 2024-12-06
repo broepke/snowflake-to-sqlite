@@ -1,3 +1,4 @@
 snowflake-connector-python
 pandas
 streamlit
+SQLAlchemy
