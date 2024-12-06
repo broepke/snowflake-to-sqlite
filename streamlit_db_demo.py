@@ -14,9 +14,11 @@ st.subheader("SQL Lite")
 sqlite_conn = st.connection("jaffle_shop", type="sql")
 sqlite_df = sqlite_conn.query(query)
 st.dataframe(sqlite_df)
+st.bar_chart(sqlite_df, x='NAME', y='PRICE')
 
 
 st.subheader("Snowflake")
 snow_conn = snowflake_connection_helper()
 snow_df = run_snowflake_query(snow_conn, query)
 st.dataframe(snow_df)
+st.bar_chart(snow_df, x='NAME', y='PRICE')
