@@ -5,13 +5,13 @@ from utilities import run_snowflake_query
 st.title("SQLite & Snowflake Intechange Demo")
 st.write("This is a small demo application that can take a single query and pass it to either a remote Snowflake warehouse or a local DB cache of tables in SQLlite.")
 
-query = """select * from picks where year = 2024 and DEATH_DATE is not null"""
+query = """select * from products where type = 'beverage'"""
 
 st.code(query)
 
 # Query and display the data you inserted
 st.subheader("SQL Lite")
-sqlite_conn = st.connection("deadpool_db", type="sql")
+sqlite_conn = st.connection("jaffle_shop", type="sql")
 sqlite_df = sqlite_conn.query(query)
 st.dataframe(sqlite_df)
 
