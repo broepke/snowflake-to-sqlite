@@ -102,9 +102,6 @@ def map_snowflake_to_sqlite_type(snowflake_type):
         if "," in snowflake_type:
             return "REAL"
         else:
-            # For NUMBER(38,0), use TEXT to preserve large integers
-            if "NUMBER(38,0)" in snowflake_type:
-                return "TEXT"
             return "INTEGER"
     
     # Handle TIMESTAMP types
