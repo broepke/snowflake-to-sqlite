@@ -9,15 +9,15 @@ st.write(
 )
 
 query = """
-select
-	c.name,
-	sum(o.order_total) as total_orders
-from customers as c
-join orders as o
-on c.id = o.customer
-group by 1
-order by 2 desc
-limit 5
+SELECT
+	C.NAME,
+	SUM(O.ORDER_TOTAL) AS TOTAL_ORDERS
+FROM CUSTOMERS AS C
+JOIN ORDERS AS O
+ON C.ID = O.CUSTOMER
+GROUP BY 1
+ORDER BY 2 DESC
+LIMIT 5
 """
 
 st.code(query)
@@ -25,7 +25,7 @@ st.code(query)
 # Query and display the data you inserted
 st.subheader("SQL Lite")
 sqlite_conn = st.connection("jaffle_shop", type="sql")
-sqlite_df = sqlite_conn.query(query)
+sqlite_df = sqlite_conn.query(query.lower())
 sqlite_df = sqlite_df.sort_values(by="total_orders", ascending=False)
 
 st.dataframe(sqlite_df)
