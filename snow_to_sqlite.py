@@ -4,6 +4,20 @@ from datetime import date, datetime
 from utilities import snowflake_connection_helper
 
 
+# List of table names to fetch and write
+table_names = [
+    "customers",
+    "items",
+    "orders",
+    "products",
+    "stores",
+    "supplies",
+]
+
+# SQLite database file
+sqlite_db_path = "jaffle_shop.db"
+
+
 # SQLite date/datetime adapters
 def adapt_date(val):
     """Convert date to ISO format string."""
@@ -36,20 +50,6 @@ sqlite3.register_adapter(date, adapt_date)
 sqlite3.register_adapter(datetime, adapt_datetime)
 sqlite3.register_converter("date", convert_date)
 sqlite3.register_converter("datetime", convert_datetime)
-
-
-# List of table names to fetch and write
-table_names = [
-    "customers",
-    "items",
-    "orders",
-    "products",
-    "stores",
-    "supplies",
-]
-
-# SQLite database file
-sqlite_db_path = "jaffle_shop.db"
 
 
 def fetch_table_schema(connection, table_name):
