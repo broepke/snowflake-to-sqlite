@@ -4,5 +4,14 @@
 			"path": "."
 		}
 	],
-	"settings": {}
+	"settings": {
+		"sqltools.connections": [
+			{
+				"previewLimit": 50,
+				"driver": "SQLite",
+				"name": "jaffle_shop",
+				"database": "${workspaceFolder:snowflake-to-sqlite}/jaffle_shop.db"
+			}
+		]
+	}
 }
