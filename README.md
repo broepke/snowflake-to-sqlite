@@ -2,6 +2,8 @@
 
 A Python utility that transfers data from Snowflake tables to a local SQLite database. This tool automatically handles schema mapping and data type conversions between Snowflake and SQLite.
 
+For some fun facts on SQLite, check out this [thread on X](https://x.com/iavins/status/1873382770203844884?s=46)!
+
 ## Features
 
 - Automatic schema conversion from Snowflake to SQLite
@@ -31,34 +33,34 @@ pip install -r requirements.txt
 
 In the data folder is a set of CSV files that can be loaded into your data warehouse for testing this if you'd like.  These files come from the dbt Demo project "Jaffle Shop" 
 
-[https://github.com/dbt-labs/jaffle-shop/tree/main](https://github.com/dbt-labs/jaffle-shop/tree/main)
+[https://github.com/dbt-labs/jaffle-shop/](https://github.com/dbt-labs/jaffle-shop/)
 
 ## Configuration
 
-Set up the following environment variables with your Snowflake credentials:
+Set up your `.secrets.toml` file to connect to your Snowflake and SQLite instance.  You can learn more here if needed [Connect Streamlit to Snowflake](https://docs.streamlit.io/develop/tutorials/databases/snowflake)
 
-```bash
-export SNOW_USER="your_snowflake_username"
-export SNOW_PASS="your_snowflake_password"
-export SNOW_ACCOUNT="your_snowflake_account"
-export SNOW_ROLE="your_snowflake_role"
+```toml
+[connections.jaffle_shop]
+url = "sqlite:///jaffle_shop.db"
+
+[connections.snowflake]
+account = ""
+user = ""
+private_key = """
+-----BEGIN PRIVATE KEY-----
+<<paste your key here>>
+-----END PRIVATE KEY-----
+"""
+role = ""
+warehouse = ""
+database = ""
+schema = ""
+client_session_keep_alive = true
 ```
 
-The script is configured to use:
-- Warehouse: ENGINEER
-- Database: DEADPOOL
-- Schema: PROD
-
-To modify these settings or the tables to transfer, edit the configuration variables in `snow_to_sqlite.py`:
+To modify these table to export to SQLite `snow_to_sqlite.py`:
 
 ```python
-snowflake_conn_params = {
-    "warehouse": "ENGINEER",
-    "database": "DEADPOOL",
-    "schema": "PROD",
-    ...
-}
-
 table_names = [
     "customers",
     "orders",
@@ -78,13 +80,13 @@ python snow_to_sqlite.py
 
 The script will:
 1. Connect to your Snowflake instance
-2. Create a local SQLite database (`deadpool.db`)
+2. Create a local SQLite database (`jaffle_shop.db`)
 3. Transfer the configured tables
 4. Handle data type conversions automatically
 
 ## Output
 
-The script creates a SQLite database file named `deadpool.db` in the same directory. This database will contain all the transferred tables with their data and appropriate schema mappings.
+The script creates a SQLite database file named `jaffle_shop.db` in the same directory. This database will contain all the transferred tables with their data and appropriate schema mappings.
 
 ## Data Type Mappings
 
