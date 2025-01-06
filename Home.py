@@ -1,5 +1,6 @@
 import streamlit as st
 import altair as alt
+import duckdb
 from utilities import snowflake_connection_helper
 from utilities import run_snowflake_query
 
@@ -44,7 +45,6 @@ st.altair_chart(sqllite_orders_chart, use_container_width=True)
 
 
 st.subheader("DuckDB")
-import duckdb
 duckdb_conn = duckdb.connect('jaffle_shop.duckdb')
 duckdb_df = duckdb_conn.execute(query.lower()).df()
 duckdb_df = duckdb_df.sort_values(by="total_orders", ascending=False)
