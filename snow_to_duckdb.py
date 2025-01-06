@@ -1,4 +1,5 @@
 import duckdb
+import pandas as pd
 from decimal import Decimal
 from datetime import date, datetime
 from utilities import snowflake_connection_helper
@@ -163,7 +164,6 @@ def write_data_to_duckdb(data, table_name, column_names):
     """
     Insert data into the specified DuckDB table.
     """
-    import pandas as pd
     
     # Convert data to pandas DataFrame
     df = pd.DataFrame(data, columns=column_names)
