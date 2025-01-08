@@ -20,20 +20,22 @@ For some fun facts on SQLite, check out this [thread on X](https://x.com/iavins/
 
 ## Installation
 
-1. Clone the repository:
+Clone the repository:
+
 ```bash
 git clone https://github.com/yourusername/snowflake-to-sqlite-duckdb.git
 cd snowflake-to-sqlite-duckdb
 ```
 
-2. Install required dependencies:
+Install required dependencies:
+
 ```bash
 pip install -r requirements.txt
 ```
 
 ## Data
 
-In the data folder is a set of CSV files that can be loaded into your data warehouse for testing this if you'd like. These files come from the dbt Demo project "Jaffle Shop" 
+In the data folder is a set of CSV files that can be loaded into your data warehouse for testing this if you'd like. These files come from the dbt Demo project "Jaffle Shop"
 
 [https://github.com/dbt-labs/jaffle-shop/](https://github.com/dbt-labs/jaffle-shop/)
 
@@ -80,16 +82,19 @@ table_names = [
 Run either script depending on your preferred target database:
 
 For SQLite:
+
 ```bash
 python snow_to_sqlite.py
 ```
 
 For DuckDB:
+
 ```bash
 python snow_to_duckdb.py
 ```
 
 The scripts will:
+
 1. Connect to your Snowflake instance
 2. Create a local database (`jaffle_shop.db` for SQLite or `jaffle_shop.duckdb` for DuckDB)
 3. Transfer the configured tables
@@ -98,6 +103,7 @@ The scripts will:
 ## Output
 
 The script creates either:
+
 - A SQLite database file named `jaffle_shop.db`, or
 - A DuckDB database file named `jaffle_shop.duckdb`
 
@@ -107,14 +113,16 @@ in the same directory. The chosen database will contain all the transferred tabl
 
 The scripts automatically map Snowflake data types to appropriate types in the target database:
 
-### SQLite Mappings:
+### SQLite Mappings
+
 - VARCHAR/TEXT → TEXT
 - NUMBER (with decimals) → REAL
 - NUMBER (without decimals) → INTEGER
 - DATE/TIMESTAMP → TEXT
 - Other types → TEXT
 
-### DuckDB Mappings:
+### DuckDB Mappings
+
 - VARCHAR/TEXT → VARCHAR
 - NUMBER (with decimals) → DOUBLE
 - NUMBER (without decimals) → BIGINT
@@ -125,6 +133,7 @@ The scripts automatically map Snowflake data types to appropriate types in the t
 ## Error Handling
 
 The scripts include error handling for:
+
 - Connection issues
 - Data type conversions
 - Schema mismatches
