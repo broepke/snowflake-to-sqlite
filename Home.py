@@ -4,9 +4,9 @@ import duckdb
 from utilities import snowflake_connection_helper
 from utilities import run_snowflake_query
 
-st.title("SQLite & Snowflake Demo")
+st.title("Snowflake to SQLite & DuckDB")
 st.write(
-    "This is a small demo application that can take a single query and pass it to either a remote Snowflake warehouse or a local DB cache of tables in SQLlite."
+    "This is a small demo application that can take a single query and pass it to either a remote Snowflake warehouse or a local DB cache of tables in SQLlite and DuckDB."
 )
 
 query = """
