@@ -23,47 +23,6 @@ LIMIT 5
 
 st.code(query)
 
-# Query and display the data you inserted
-st.subheader("SQL Lite")
-sqlite_conn = st.connection("jaffle_shop", type="sql")
-sqlite_df = sqlite_conn.query(query.lower())
-sqlite_df = sqlite_df.sort_values(by="total_orders", ascending=False)
-
-st.dataframe(sqlite_df)
-
-sqllite_orders_chart = (
-    alt.Chart(sqlite_df)
-    .mark_bar()
-    .encode(
-        x="NAME",
-        y=alt.Y("total_orders", sort=None),
-        color=alt.value("#F63366"),
-    )
-)
-
-st.altair_chart(sqllite_orders_chart, use_container_width=True)
-
-
-st.subheader("DuckDB")
-duckdb_conn = duckdb.connect('jaffle_shop.duckdb')
-duckdb_df = duckdb_conn.execute(query.lower()).df()
-duckdb_df = duckdb_df.sort_values(by="total_orders", ascending=False)
-
-st.dataframe(duckdb_df)
-
-duckdb_orders_chart = (
-    alt.Chart(duckdb_df)
-    .mark_bar()
-    .encode(
-        x="NAME",
-        y=alt.Y("total_orders", sort=None),
-        color=alt.value("#F63366"),
-    )
-)
-
-st.altair_chart(duckdb_orders_chart, use_container_width=True)
-
-
 st.subheader("Snowflake")
 snow_conn = snowflake_connection_helper()
 snow_df = run_snowflake_query(snow_conn, query)
@@ -82,3 +41,44 @@ snow_orders_chart = (
 )
 
 st.altair_chart(snow_orders_chart, use_container_width=True)
+
+
+# Query and display the data you inserted
+st.subheader("SQL Lite")
+sqlite_conn = st.connection("jaffle_shop", type="sql")
+sqlite_df = sqlite_conn.query(query)
+sqlite_df = sqlite_df.sort_values(by="TOTAL_ORDERS", ascending=False)
+
+st.dataframe(sqlite_df)
+
+sqllite_orders_chart = (
+    alt.Chart(sqlite_df)
+    .mark_bar()
+    .encode(
+        x="NAME",
+        y=alt.Y("TOTAL_ORDERS", sort=None),
+        color=alt.value("#F63366"),
+    )
+)
+
+st.altair_chart(sqllite_orders_chart, use_container_width=True)
+
+
+st.subheader("DuckDB")
+duckdb_conn = duckdb.connect("jaffle_shop.duckdb")
+duckdb_df = duckdb_conn.execute(query).df()
+duckdb_df = duckdb_df.sort_values(by="TOTAL_ORDERS", ascending=False)
+
+st.dataframe(duckdb_df)
+
+duckdb_orders_chart = (
+    alt.Chart(duckdb_df)
+    .mark_bar()
+    .encode(
+        x="NAME",
+        y=alt.Y("TOTAL_ORDERS", sort=None),
+        color=alt.value("#F63366"),
+    )
+)
+
+st.altair_chart(duckdb_orders_chart, use_container_width=True)

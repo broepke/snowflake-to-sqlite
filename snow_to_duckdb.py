@@ -82,7 +82,7 @@ def create_table_in_duckdb(table_name, schema):
     conn = duckdb.connect(duckdb_path)
     
     columns_with_types = ", ".join(
-        [f'"{col[0]}" {map_snowflake_to_duckdb_type(col[1])}' for col in schema]
+        [f'{col[0]} {map_snowflake_to_duckdb_type(col[1])}' for col in schema]
     )
     create_table_query = f"CREATE TABLE IF NOT EXISTS {table_name} ({columns_with_types})"
     conn.execute(create_table_query)
@@ -174,7 +174,7 @@ def write_data_to_duckdb(data, table_name, column_names):
     conn.register('temp_data', df)
     
     # Insert data from the temporary view into the permanent table
-    columns = ', '.join([f'"{col}"' for col in column_names])
+    columns = ', '.join([f'{col}' for col in column_names])
     insert_query = f"INSERT INTO {table_name} ({columns}) SELECT * FROM temp_data"
     conn.execute(insert_query)
     

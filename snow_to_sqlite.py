@@ -120,7 +120,7 @@ def create_table_in_sqlite(table_name, schema):
     cursor = conn.cursor()
 
     columns_with_types = ", ".join(
-        [f'"{col[0]}" {map_snowflake_to_sqlite_type(col[1])}' for col in schema]
+        [f'{col[0]} {map_snowflake_to_sqlite_type(col[1])}' for col in schema]
     )
     create_table_query = (
         f"CREATE TABLE IF NOT EXISTS {table_name} ({columns_with_types})"
